@@ -3,20 +3,27 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
 export async function GET() {
-  const notes = await prisma.note.findMany({ include: { user: true } });
-  return Response.json(notes);
+  const notes = await prisma.note.findMany();
+  return new Response(JSON.stringify(notes), { status: 200 });
 }
 
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) return new Response("Unauthorized", { status: 401 });
-  const body = await req.json();
+  if (!session) return new Response("Unauthorized", { status: 401 });
+  const { title, content } = await req.json();
   const note = await prisma.note.create({
-    data: {
-      title: body.title,
-      content: body.content,
-      userId: session.user.id,
-    },
+    data: { title, content, userId: session.user.id },
   });
-  return Response.json(note);
+  return new Response(JSON.stringify(note), { status: 201 });
+}
+
+export async function PUT(req: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session) return new Response("Unauthorized", { status: 401 });
+  const { id, title, content } = await req.json();
+  const note = await prisma.note.update({
+    where: { id },
+    data: { title, content },
+  });
+  return new Response(JSON.stringify(note), { status: 200 });
 }
